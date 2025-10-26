@@ -120,40 +120,40 @@ Return only the JSON object, no additional text.`;
 
   async searchRecipes(query, pantryItems = []) {
     try {
-      // Try Spoonacular API first for global cuisine
-      if (this.spoonacularApiKey) {
-        console.log('Using Spoonacular API for global cuisine search');
-        const spoonacularResults = await this.searchSpoonacular(query);
-        if (spoonacularResults.length > 0) {
-          return spoonacularResults;
-        }
-      }
-
-      // Try TheMealDB API (free, no API key needed)
+      // PRIORITY 1: Try TheMealDB API first (unlimited, free, reliable)
       console.log('Using TheMealDB API for recipe search');
       const mealDBResults = await this.searchMealDB(query);
       if (mealDBResults.length > 0) {
         return mealDBResults;
       }
 
-      // Fallback to OpenAI if available
+      // PRIORITY 2: Try TheMealDB with pantry-matched recipes
+      console.log('Using TheMealDB for pantry-matched recipes');
+      try {
+        const mealDBFallback = await this.searchMealDBWithPantry(query, pantryItems);
+        if (mealDBFallback.length > 0) return mealDBFallback;
+      } catch (error) {
+        console.log('TheMealDB fallback failed, trying OpenAI');
+      }
+
+      // PRIORITY 3: Fallback to OpenAI if available
       if (this.openai) {
         console.log('Using OpenAI for recipe search');
         try {
           const openAIResults = await this.searchWithOpenAI(query, pantryItems);
           if (openAIResults.length > 0) return openAIResults;
         } catch (error) {
-          console.log('OpenAI failed, using TheMealDB fallback');
+          console.log('OpenAI failed, trying Spoonacular');
         }
       }
 
-      // Try TheMealDB with pantry-matched recipes before local fallback
-      console.log('Using TheMealDB for pantry-matched recipes');
-      try {
-        const mealDBFallback = await this.searchMealDBWithPantry(query, pantryItems);
-        if (mealDBFallback.length > 0) return mealDBFallback;
-      } catch (error) {
-        console.log('TheMealDB fallback failed, using local fallback');
+      // PRIORITY 4: Try Spoonacular API as last resort (unreliable, quota issues)
+      if (this.spoonacularApiKey) {
+        console.log('Using Spoonacular API as last resort');
+        const spoonacularResults = await this.searchSpoonacular(query);
+        if (spoonacularResults.length > 0) {
+          return spoonacularResults;
+        }
       }
 
       // Final fallback to enhanced local search
