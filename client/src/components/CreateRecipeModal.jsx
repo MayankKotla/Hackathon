@@ -47,13 +47,26 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
   const handleSubmit = (e) => {
     e.preventDefault()
     
+    // Convert ingredients and instructions to the format expected by the database
+    const ingredientsArray = recipe.ingredients
+      .filter(ing => ing.name.trim())
+      .map(ing => ing.name.trim())
+    
+    const instructionsArray = recipe.instructions
+      .filter(inst => inst.description.trim())
+      .map(inst => inst.description.trim())
+    
     const recipeData = {
-      ...recipe,
-      user_id: recipe.user_id,
-      is_public: true,
-      tags: recipe.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-      ingredients: recipe.ingredients.filter(ing => ing.name.trim()),
-      instructions: recipe.instructions.filter(inst => inst.description.trim())
+      title: recipe.title,
+      description: recipe.description,
+      ingredients: ingredientsArray,
+      instructions: instructionsArray,
+      prep_time: recipe.prep_time,
+      cook_time: recipe.cook_time,
+      servings: recipe.servings,
+      difficulty: recipe.difficulty,
+      cuisine: recipe.cuisine,
+      is_public: true
     }
 
     createRecipeMutation.mutate(recipeData)

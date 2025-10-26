@@ -47,19 +47,26 @@ class DatabaseService {
 
   // Recipe operations
   static async createRecipe(recipeData) {
-    // Only include fields that exist in the database schema
+    // Map frontend fields to database schema fields
     const difficultyMap = {
       'easy': 'Easy',
       'medium': 'Medium', 
       'hard': 'Hard'
     };
     
+    // Only include fields that exist in the database schema
     const recipeWithDefaults = {
-      ...recipeData,
+      user_id: recipeData.user_id,
+      title: recipeData.title,
+      description: recipeData.description,
+      ingredients: recipeData.ingredients,
+      instructions: recipeData.instructions,
+      prep_time: recipeData.prep_time,
+      cook_time: recipeData.cook_time,
+      servings: recipeData.servings,
       difficulty: difficultyMap[recipeData.difficulty?.toLowerCase()] || 'Easy',
-      likes: recipeData.likes || [],
-      bookmarks: recipeData.bookmarks || [],
-      comments: recipeData.comments || [],
+      cuisine_type: recipeData.cuisine || null, // Map cuisine to cuisine_type
+      image_url: recipeData.image_url || null,
       is_public: recipeData.is_public !== undefined ? recipeData.is_public : true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
