@@ -246,6 +246,7 @@ class DatabaseService {
       .from('recipes')
       .select('*')
       .eq('user_id', userId)
+      .eq('is_public', true) // Only show public recipes (user's actual posts)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
     
@@ -253,17 +254,59 @@ class DatabaseService {
     return data;
   }
 
-  static async getSavedRecipes(userId) {
+  // Saved recipes operations
+  static async saveRecipe(userId, recipeId, source = 'recipe_generator') {
     const { data, error } = await supabase
-      .from('recipes')
-      .select(`
-        *,
-        author:users!recipes_user_id_fkey(name, avatar, avatar_url)
-      `)
-      .contains('bookmarks', [userId]);
+      .from('saved_recipes')
+      .insert([{
+        user_id: userId,
+        recipe_id: recipeId,
+        source: source
+      }])
+      .select()
+      .single();
     
     if (error) throw error;
     return data;
+  }
+
+  static async unsaveRecipe(userId, recipeId) {
+    const { error } = await supabase
+      .from('saved_recipes')
+      .delete()
+      .eq('user_id', userId)
+      .eq('recipe_id', recipeId);
+    
+    if (error) throw error;
+    return { deletedCount: 1 };
+  }
+
+  static async getSavedRecipes(userId) {
+    const { data, error } = await supabase
+      .from('saved_recipes')
+      .select(`
+        *,
+        recipe:recipes!saved_recipes_recipe_id_fkey(
+          *,
+          author:users!recipes_user_id_fkey(name, avatar, avatar_url)
+        )
+      `)
+      .eq('user_id', userId)
+      .order('saved_at', { ascending: false });
+    
+    if (error) throw error;
+    return data;
+  }
+
+  static async isRecipeSaved(userId, recipeId) {
+    const { data, error } = await supabase
+      .from('saved_recipes')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('recipe_id', recipeId)
+      .single();
+    
+    return !error && data;
   }
 }
 
