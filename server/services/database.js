@@ -147,12 +147,39 @@ class DatabaseService {
   }
 
   static async deleteRecipe(id) {
+    console.log('Attempting to delete recipe with ID:', id);
+    
+    // First check if recipe exists
+    const { data: existingRecipe, error: fetchError } = await supabase
+      .from('recipes')
+      .select('id, user_id, title')
+      .eq('id', id)
+      .single();
+    
+    if (fetchError) {
+      console.error('Error fetching recipe for deletion:', fetchError);
+      throw fetchError;
+    }
+    
+    if (!existingRecipe) {
+      throw new Error('Recipe not found');
+    }
+    
+    console.log('Found recipe to delete:', existingRecipe);
+    
+    // Delete the recipe (cascade will handle saved_recipes)
     const { error } = await supabase
       .from('recipes')
       .delete()
       .eq('id', id);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error deleting recipe:', error);
+      throw error;
+    }
+    
+    console.log('Recipe deleted successfully');
+    return { deletedCount: 1 };
   }
 
   static async likeRecipe(recipeId, userId) {

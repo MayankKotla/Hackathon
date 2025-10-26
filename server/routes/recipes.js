@@ -243,4 +243,90 @@ router.post('/generate', auth, async (req, res) => {
   }
 });
 
+// @route   PUT /api/recipes/:id
+// @desc    Update a recipe (edit post)
+// @access  Private (only recipe owner)
+router.put('/:id', auth, [
+  body('title').trim().isLength({ min: 1 }).withMessage('Title is required'),
+  body('description').trim().isLength({ min: 1 }).withMessage('Description is required'),
+  body('ingredients').isArray({ min: 1 }).withMessage('At least one ingredient is required'),
+  body('instructions').isArray({ min: 1 }).withMessage('At least one instruction is required'),
+  body('prep_time').isNumeric().withMessage('Prep time must be a number'),
+  body('cook_time').isNumeric().withMessage('Cook time must be a number'),
+  body('servings').isNumeric().withMessage('Servings must be a number')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const recipeId = req.params.id;
+    const userId = req.userId;
+
+    // Check if recipe exists and belongs to user
+    const existingRecipe = await DatabaseService.getRecipeById(recipeId);
+    if (!existingRecipe || existingRecipe.error) {
+      return res.status(404).json({ message: 'Recipe not found' });
+    }
+
+    console.log(`Found recipe:`, existingRecipe);
+
+    // Check both user_id and author_id fields (some recipes might use different field names)
+    const recipeOwnerId = existingRecipe.data.user_id || existingRecipe.data.author_id;
+    console.log(`Recipe owner check (edit): user_id=${existingRecipe.data.user_id}, author_id=${existingRecipe.data.author_id}, recipeOwnerId=${recipeOwnerId}, userId=${userId}`);
+    
+    if (recipeOwnerId !== userId) {
+      return res.status(403).json({ message: 'Not authorized to edit this recipe' });
+    }
+
+    // Update the recipe
+    const updatedRecipe = await DatabaseService.updateRecipe(recipeId, req.body);
+
+    res.json(updatedRecipe);
+  } catch (error) {
+    console.error('Update recipe error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// @route   DELETE /api/recipes/:id
+// @desc    Delete a recipe (delete post)
+// @access  Private (only recipe owner)
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const recipeId = req.params.id;
+    const userId = req.userId;
+
+    console.log(`Delete request for recipe ${recipeId} by user ${userId}`);
+
+    // Check if recipe exists and belongs to user
+    const existingRecipe = await DatabaseService.getRecipeById(recipeId);
+    if (!existingRecipe || existingRecipe.error) {
+      console.log(`Recipe ${recipeId} not found`);
+      return res.status(404).json({ message: 'Recipe not found' });
+    }
+
+    console.log(`Found recipe:`, existingRecipe);
+
+    // Check both user_id and author_id fields (some recipes might use different field names)
+    const recipeOwnerId = existingRecipe.data.user_id || existingRecipe.data.author_id;
+    console.log(`Recipe owner check: user_id=${existingRecipe.data.user_id}, author_id=${existingRecipe.data.author_id}, recipeOwnerId=${recipeOwnerId}, userId=${userId}`);
+    
+    if (recipeOwnerId !== userId) {
+      console.log(`User ${userId} not authorized to delete recipe ${recipeId} (owner: ${recipeOwnerId})`);
+      return res.status(403).json({ message: 'Not authorized to delete this recipe' });
+    }
+
+    // Delete the recipe
+    const result = await DatabaseService.deleteRecipe(recipeId);
+    console.log('Delete result:', result);
+
+    res.json({ message: 'Recipe deleted successfully' });
+  } catch (error) {
+    console.error('Delete recipe error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 module.exports = router;
