@@ -15,6 +15,7 @@ const userRoutes = require('./routes/users');
 const recipeRoutes = require('./routes/recipes');
 const pantryRoutes = require('./routes/pantry');
 const savedRecipesRoutes = require('./routes/savedRecipes');
+const mediaRoutes = require('./routes/media');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -41,6 +42,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/pantry', pantryRoutes);
 app.use('/api/saved-recipes', savedRecipesRoutes);
+app.use('/api/media', mediaRoutes);
 
 // Serve static files from React app in production
 if (process.env.NODE_ENV === 'production') {

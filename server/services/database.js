@@ -335,6 +335,61 @@ class DatabaseService {
     
     return !error && data;
   }
+
+  // Media Attachment Methods
+  static async createMediaAttachment(mediaData) {
+    const { data, error } = await supabase
+      .from('media_attachments')
+      .insert(mediaData)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+
+  static async getMediaAttachmentById(mediaId) {
+    const { data, error } = await supabase
+      .from('media_attachments')
+      .select('*')
+      .eq('id', mediaId)
+      .single();
+    
+    return { data, error };
+  }
+
+  static async getMediaAttachmentsByRecipeId(recipeId) {
+    const { data, error } = await supabase
+      .from('media_attachments')
+      .select('*')
+      .eq('recipe_id', recipeId)
+      .order('order_index', { ascending: true });
+    
+    if (error) throw error;
+    return data;
+  }
+
+  static async deleteMediaAttachment(mediaId) {
+    const { error } = await supabase
+      .from('media_attachments')
+      .delete()
+      .eq('id', mediaId);
+    
+    if (error) throw error;
+    return { deletedCount: 1 };
+  }
+
+  static async updateMediaAttachmentOrder(mediaId, orderIndex) {
+    const { data, error } = await supabase
+      .from('media_attachments')
+      .update({ order_index: orderIndex })
+      .eq('id', mediaId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
 }
 
 module.exports = DatabaseService;
