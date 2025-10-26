@@ -113,8 +113,8 @@ router.post('/', auth, [
   body('description').trim().isLength({ min: 1 }).withMessage('Description is required'),
   body('ingredients').isArray({ min: 1 }).withMessage('At least one ingredient is required'),
   body('instructions').isArray({ min: 1 }).withMessage('At least one instruction is required'),
-  body('prepTime').isNumeric().withMessage('Prep time must be a number'),
-  body('cookTime').isNumeric().withMessage('Cook time must be a number'),
+  body('prep_time').isNumeric().withMessage('Prep time must be a number'),
+  body('cook_time').isNumeric().withMessage('Cook time must be a number'),
   body('servings').isNumeric().withMessage('Servings must be a number')
 ], async (req, res) => {
   try {
@@ -125,9 +125,7 @@ router.post('/', auth, [
 
     const recipeData = {
       ...req.body,
-      author_id: req.userId,
-      prep_time: req.body.prepTime,
-      cook_time: req.body.cookTime
+      user_id: req.userId
     };
 
     const recipe = await DatabaseService.createRecipe(recipeData);

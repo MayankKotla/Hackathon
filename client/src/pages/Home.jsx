@@ -135,7 +135,7 @@ const Home = () => {
           className="btn-primary flex items-center space-x-2"
         >
           <Plus className="w-5 h-5" />
-          <span>Share Recipe</span>
+          <span>Share Experience</span>
         </button>
       </div>
 

@@ -22,7 +22,7 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
     (recipeData) => api.post('/recipes', recipeData),
     {
       onSuccess: () => {
-        toast.success('Recipe created successfully!')
+        toast.success('Recipe experience shared successfully!')
         onClose()
         setRecipe({
           title: '',
@@ -38,7 +38,7 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
         })
       },
       onError: (error) => {
-        toast.error('Failed to create recipe')
+        toast.error('Failed to share recipe experience')
         console.error('Create recipe error:', error)
       }
     }
@@ -49,6 +49,10 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
     
     const recipeData = {
       ...recipe,
+      prep_time: recipe.prepTime,
+      cook_time: recipe.cookTime,
+      user_id: recipe.user_id,
+      is_public: true,
       tags: recipe.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
       ingredients: recipe.ingredients.filter(ing => ing.name.trim()),
       instructions: recipe.instructions.filter(inst => inst.description.trim())
@@ -108,7 +112,7 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Create New Recipe</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Share Your Recipe Experience</h2>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600"
@@ -334,7 +338,7 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
                 disabled={createRecipeMutation.isLoading}
                 className="btn-primary"
               >
-                {createRecipeMutation.isLoading ? 'Creating...' : 'Create Recipe'}
+                {createRecipeMutation.isLoading ? 'Sharing...' : 'Share Experience'}
               </button>
             </div>
           </form>
