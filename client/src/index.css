@@ -8,6 +8,8 @@
   }
   body {
     @apply bg-white text-gray-900;
+    font-family: "Georgia", "Times New Roman", serif;
+    font-weight: bold;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
