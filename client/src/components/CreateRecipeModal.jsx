@@ -3,6 +3,7 @@ import { useMutation } from 'react-query'
 import { X, Plus, Trash2 } from 'lucide-react'
 import { api } from '../services/api'
 import toast from 'react-hot-toast'
+import MediaUpload from './MediaUpload'
 
 const CreateRecipeModal = ({ isOpen, onClose }) => {
   const [recipe, setRecipe] = useState({
@@ -17,25 +18,17 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
     tags: '',
     cuisine: ''
   })
+  const [mediaFiles, setMediaFiles] = useState([])
+
+  const handleMediaChange = (files) => {
+    setMediaFiles(files)
+  }
 
   const createRecipeMutation = useMutation(
     (recipeData) => api.post('/recipes', recipeData),
     {
       onSuccess: () => {
-        toast.success('Recipe experience shared successfully!')
-        onClose()
-        setRecipe({
-          title: '',
-          description: '',
-          ingredients: [{ name: '', quantity: '', unit: '' }],
-          instructions: [{ step: 1, description: '', duration: 0 }],
-          prep_time: 15,
-          cook_time: 30,
-          servings: 4,
-          difficulty: 'easy',
-          tags: '',
-          cuisine: ''
-        })
+        // Success message and form reset are handled in handleSubmit
       },
       onError: (error) => {
         toast.error('Failed to share recipe experience')
@@ -44,32 +37,85 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
     }
   )
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     
-    // Convert ingredients and instructions to the format expected by the database
-    const ingredientsArray = recipe.ingredients
-      .filter(ing => ing.name.trim())
-      .map(ing => ing.name.trim())
-    
-    const instructionsArray = recipe.instructions
-      .filter(inst => inst.description.trim())
-      .map(inst => inst.description.trim())
-    
-    const recipeData = {
-      title: recipe.title,
-      description: recipe.description,
-      ingredients: ingredientsArray,
-      instructions: instructionsArray,
-      prep_time: recipe.prep_time,
-      cook_time: recipe.cook_time,
-      servings: recipe.servings,
-      difficulty: recipe.difficulty,
-      cuisine: recipe.cuisine,
-      is_public: true
-    }
+    try {
+      // First, create the recipe
+      const ingredientsArray = recipe.ingredients
+        .filter(ing => ing.name.trim())
+        .map(ing => ing.name.trim())
+      
+      const instructionsArray = recipe.instructions
+        .filter(inst => inst.description.trim())
+        .map(inst => inst.description.trim())
+      
+      const recipeData = {
+        title: recipe.title,
+        description: recipe.description,
+        ingredients: ingredientsArray,
+        instructions: instructionsArray,
+        prep_time: recipe.prep_time,
+        cook_time: recipe.cook_time,
+        servings: recipe.servings,
+        difficulty: recipe.difficulty,
+        cuisine: recipe.cuisine,
+        is_public: true
+      }
 
-    createRecipeMutation.mutate(recipeData)
+      const recipeResponse = await api.post('/recipes', recipeData)
+      const createdRecipe = recipeResponse.data
+
+      // If there are media files, upload them
+      if (mediaFiles.length > 0) {
+        try {
+          const formData = new FormData()
+          mediaFiles.forEach(file => {
+            formData.append('media', file.file)
+          })
+
+          const mediaResponse = await api.post('/media/upload', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          })
+
+          const uploadedMedia = mediaResponse.data.media
+
+          // Attach media to the recipe
+          await api.post('/media/attach-to-recipe', {
+            recipe_id: createdRecipe.id,
+            media: uploadedMedia
+          })
+        } catch (mediaError) {
+          console.warn('Media upload failed, but recipe was created:', mediaError)
+          toast.error('Recipe created but media upload failed. Please check Supabase Storage setup.')
+        }
+      }
+
+      toast.success('Recipe experience shared successfully!')
+      onClose()
+      resetForm()
+    } catch (error) {
+      toast.error('Failed to share recipe experience')
+      console.error('Create recipe error:', error)
+    }
+  }
+
+  const resetForm = () => {
+    setRecipe({
+      title: '',
+      description: '',
+      ingredients: [{ name: '', quantity: '', unit: '' }],
+      instructions: [{ step: 1, description: '', duration: 0 }],
+      prep_time: 15,
+      cook_time: 30,
+      servings: 4,
+      difficulty: 'easy',
+      tags: '',
+      cuisine: ''
+    })
+    setMediaFiles([])
   }
 
   const addIngredient = () => {
@@ -149,7 +195,7 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cuisine Type
+                  Cuisine
                 </label>
                 <input
                   type="text"
@@ -168,7 +214,7 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
               <textarea
                 value={recipe.description}
                 onChange={(e) => setRecipe({ ...recipe, description: e.target.value })}
-                className="input w-full h-20"
+                className="input w-full h-24"
                 required
                 placeholder="Describe your recipe..."
               />
@@ -228,16 +274,16 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
               </div>
             </div>
 
+            {/* Media Upload */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tags (comma-separated)
-              </label>
-              <input
-                type="text"
-                value={recipe.tags}
-                onChange={(e) => setRecipe({ ...recipe, tags: e.target.value })}
-                className="input w-full"
-                placeholder="e.g., quick, healthy, vegetarian"
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Photos & Videos (Optional)</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Add photos or videos to make your recipe more engaging. Requires Supabase Storage setup.
+              </p>
+              <MediaUpload 
+                onMediaChange={handleMediaChange}
+                maxFiles={5}
+                maxVideoDuration={60}
               />
             </div>
 
@@ -256,32 +302,32 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
               </div>
               <div className="space-y-3">
                 {recipe.ingredients.map((ingredient, index) => (
-                  <div key={index} className="flex space-x-3">
+                  <div key={index} className="flex gap-3">
                     <input
                       type="text"
-                      placeholder="Ingredient name"
                       value={ingredient.name}
                       onChange={(e) => updateIngredient(index, 'name', e.target.value)}
                       className="input flex-1"
+                      placeholder="Ingredient name"
                     />
                     <input
                       type="text"
-                      placeholder="Quantity"
                       value={ingredient.quantity}
                       onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
                       className="input w-24"
+                      placeholder="Qty"
                     />
                     <input
                       type="text"
-                      placeholder="Unit"
                       value={ingredient.unit}
                       onChange={(e) => updateIngredient(index, 'unit', e.target.value)}
-                      className="input w-24"
+                      className="input w-20"
+                      placeholder="Unit"
                     />
                     <button
                       type="button"
                       onClick={() => removeIngredient(index)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-500 hover:text-red-700 p-2"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -303,30 +349,24 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
                   <span>Add Step</span>
                 </button>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {recipe.instructions.map((instruction, index) => (
-                  <div key={index} className="flex space-x-3">
-                    <span className="flex-shrink-0 w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                  <div key={index} className="flex gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
                       {instruction.step}
-                    </span>
-                    <textarea
-                      placeholder="Describe this step..."
-                      value={instruction.description}
-                      onChange={(e) => updateInstruction(index, 'description', e.target.value)}
-                      className="input flex-1 h-20 resize-none"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Min"
-                      value={instruction.duration}
-                      onChange={(e) => updateInstruction(index, 'duration', parseInt(e.target.value) || 0)}
-                      className="input w-20"
-                      min="0"
-                    />
+                    </div>
+                    <div className="flex-1">
+                      <textarea
+                        value={instruction.description}
+                        onChange={(e) => updateInstruction(index, 'description', e.target.value)}
+                        className="input w-full h-20"
+                        placeholder="Describe this step..."
+                      />
+                    </div>
                     <button
                       type="button"
                       onClick={() => removeInstruction(index)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-500 hover:text-red-700 p-2"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -336,7 +376,7 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
             </div>
 
             {/* Submit Buttons */}
-            <div className="flex justify-end space-x-3 pt-6 border-t">
+            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
               <button
                 type="button"
                 onClick={onClose}

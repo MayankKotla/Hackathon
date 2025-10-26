@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation } from 'react-query'
 import { useAuth } from '../contexts/AuthContext'
-import { Plus, Clock, Settings, Box, Edit3, Bookmark, X } from 'lucide-react'
+import { Plus, Clock, Settings, Box, Edit3, Bookmark, X, Trash2 } from 'lucide-react'
 import { api } from '../services/api'
+import EditRecipeModal from '../components/EditRecipeModal'
 import toast from 'react-hot-toast'
 
 const Profile = () => {
@@ -14,6 +15,8 @@ const Profile = () => {
   const [editingItem, setEditingItem] = useState(null)
   const [editItemData, setEditItemData] = useState({ name: '', quantity: '', unit: '', category: 'protein' })
   const [showSavedRecipes, setShowSavedRecipes] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingRecipe, setEditingRecipe] = useState(null)
 
   const { data: userProfile, refetch: refetchProfile } = useQuery(
     'userProfile',
@@ -113,6 +116,42 @@ const Profile = () => {
       }
     }
   )
+
+  const deleteRecipeMutation = useMutation(
+    (recipeId) => api.delete(`/recipes/${recipeId}`),
+    {
+      onSuccess: () => {
+        toast.success('Recipe deleted successfully!')
+        // Refetch user posts to update the list
+        window.location.reload() // Simple refresh for now
+      },
+      onError: (error) => {
+        console.error('Delete recipe error details:', error)
+        console.error('Error response:', error.response?.data)
+        console.error('Error status:', error.response?.status)
+        toast.error('Failed to delete recipe')
+        console.error('Delete recipe error:', error)
+      }
+    }
+  )
+
+  const handleDelete = (recipeId) => {
+    if (window.confirm('Are you sure you want to delete this recipe? This action cannot be undone.')) {
+      deleteRecipeMutation.mutate(recipeId)
+    }
+  }
+
+  const handleEdit = (recipe) => {
+    setEditingRecipe(recipe)
+    setShowEditModal(true)
+  }
+
+  const handleEditSuccess = () => {
+    setShowEditModal(false)
+    setEditingRecipe(null)
+    // Refetch user posts to update the list
+    window.location.reload() // Simple refresh for now
+  }
 
   const handleAddItem = (e) => {
     e.preventDefault()
@@ -220,22 +259,18 @@ const Profile = () => {
                 <div className="text-sm text-gray-600">Recipes Made</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-primary-500">{userProfile?.stats?.totalLikes || 0}</div>
-                <div className="text-sm text-gray-600">Total Likes</div>
+                <div className="text-2xl font-bold text-primary-500">{savedRecipes?.length || 0}</div>
+                <div className="text-sm text-gray-600">Total Saved</div>
               </div>
             </div>
 
-            <div className="flex justify-end space-x-4">
+            <div className="flex justify-end">
               <button 
                 onClick={() => setShowSavedRecipes(!showSavedRecipes)}
                 className={`flex items-center space-x-2 ${showSavedRecipes ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
               >
                 <Bookmark className="w-4 h-4" />
                 <span className="text-sm">Saved</span>
-              </button>
-              <button className="flex items-center space-x-2 text-gray-600 hover:text-gray-900">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm">View History</span>
               </button>
             </div>
           </div>
@@ -317,7 +352,7 @@ const Profile = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">My Posts</h3>
             <div className="space-y-4">
               {userPosts?.map((recipe) => (
-                <div key={recipe._id} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                <div key={recipe.id || recipe._id} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
                   <div className="w-16 h-16 bg-gray-200 rounded-full flex-shrink-0"></div>
                   <div className="flex-1">
                     <h4 className="font-semibold text-gray-900">{recipe.title}</h4>
@@ -325,11 +360,27 @@ const Profile = () => {
                     <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
                       <span>{recipe.likes?.length || 0} likes</span>
                       <span>•</span>
-                      <span>{new Date(recipe.createdAt).toLocaleDateString('en-US', { 
+                      <span>{new Date(recipe.createdAt || recipe.created_at).toLocaleDateString('en-US', { 
                         month: 'short', 
                         day: 'numeric' 
                       })}</span>
                     </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleEdit(recipe)}
+                      className="p-2 text-gray-500 hover:text-blue-600 transition-colors"
+                      title="Edit Recipe"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(recipe.id || recipe._id)}
+                      className="p-2 text-gray-500 hover:text-red-600 transition-colors"
+                      title="Delete Recipe"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -608,6 +659,14 @@ const Profile = () => {
           )}
         </div>
       </div>
+
+      {/* Edit Recipe Modal */}
+      <EditRecipeModal 
+        isOpen={showEditModal} 
+        onClose={() => setShowEditModal(false)}
+        recipe={editingRecipe}
+        onSuccess={handleEditSuccess}
+      />
     </div>
   )
 }

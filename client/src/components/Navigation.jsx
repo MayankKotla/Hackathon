@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Users, ChefHat, User } from 'lucide-react'
+import { Users, Apple, User } from 'lucide-react'
 import clsx from 'clsx'
 
 const Navigation = () => {
@@ -8,7 +8,7 @@ const Navigation = () => {
 
   const navItems = [
     { path: '/', label: 'Social Feed', icon: Users },
-    { path: '/generator', label: 'Recipe Generator', icon: ChefHat },
+    { path: '/generator', label: 'Recipe Generator', icon: Apple },
     { path: '/profile', label: 'Profile', icon: User },
   ]
 

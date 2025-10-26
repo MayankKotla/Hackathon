@@ -58,7 +58,7 @@ const Register = () => {
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">Create your account</h2>
           <p className="mt-2 text-sm text-gray-600">
-            Join FlavorCraft and start your culinary journey
+            Join Stir and start your culinary journey
           </p>
         </div>
 
