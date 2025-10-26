@@ -46,19 +46,37 @@ class DatabaseService {
   }
 
   // Recipe operations
-    static async createRecipe(recipeData) {
-      const { data, error } = await supabase
-        .from('recipes')
-        .insert([recipeData])
-        .select(`
-          *,
-          author:users!recipes_user_id_fkey(name, avatar, avatar_url)
-        `)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    }
+  static async createRecipe(recipeData) {
+    // Only include fields that exist in the database schema
+    const difficultyMap = {
+      'easy': 'Easy',
+      'medium': 'Medium', 
+      'hard': 'Hard'
+    };
+    
+    const recipeWithDefaults = {
+      ...recipeData,
+      difficulty: difficultyMap[recipeData.difficulty?.toLowerCase()] || 'Easy',
+      likes: recipeData.likes || [],
+      bookmarks: recipeData.bookmarks || [],
+      comments: recipeData.comments || [],
+      is_public: recipeData.is_public !== undefined ? recipeData.is_public : true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('recipes')
+      .insert([recipeWithDefaults])
+      .select(`
+        *,
+        author:users!recipes_user_id_fkey(name, avatar, avatar_url)
+      `)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
 
   static async getRecipes(filters = {}) {
     let query = supabase

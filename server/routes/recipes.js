@@ -130,15 +130,16 @@ router.post('/', auth, [
 
     const recipe = await DatabaseService.createRecipe(recipeData);
 
-    // Update user stats
-    await DatabaseService.updateUser(req.userId, {
-      stats: { posts: { $inc: 1 } }
-    });
-
     res.status(201).json(recipe);
   } catch (error) {
     console.error('Create recipe error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint
+    });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 

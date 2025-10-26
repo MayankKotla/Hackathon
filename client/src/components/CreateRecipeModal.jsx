@@ -10,8 +10,8 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
     description: '',
     ingredients: [{ name: '', quantity: '', unit: '' }],
     instructions: [{ step: 1, description: '', duration: 0 }],
-    prepTime: 15,
-    cookTime: 30,
+    prep_time: 15,
+    cook_time: 30,
     servings: 4,
     difficulty: 'easy',
     tags: '',
@@ -29,8 +29,8 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
           description: '',
           ingredients: [{ name: '', quantity: '', unit: '' }],
           instructions: [{ step: 1, description: '', duration: 0 }],
-          prepTime: 15,
-          cookTime: 30,
+          prep_time: 15,
+          cook_time: 30,
           servings: 4,
           difficulty: 'easy',
           tags: '',
@@ -49,8 +49,6 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
     
     const recipeData = {
       ...recipe,
-      prep_time: recipe.prepTime,
-      cook_time: recipe.cookTime,
       user_id: recipe.user_id,
       is_public: true,
       tags: recipe.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
@@ -171,8 +169,8 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
                 </label>
                 <input
                   type="number"
-                  value={recipe.prepTime}
-                  onChange={(e) => setRecipe({ ...recipe, prepTime: parseInt(e.target.value) || 0 })}
+                  value={recipe.prep_time}
+                  onChange={(e) => setRecipe({ ...recipe, prep_time: parseInt(e.target.value) || 0 })}
                   className="input w-full"
                   min="0"
                 />
@@ -183,8 +181,8 @@ const CreateRecipeModal = ({ isOpen, onClose }) => {
                 </label>
                 <input
                   type="number"
-                  value={recipe.cookTime}
-                  onChange={(e) => setRecipe({ ...recipe, cookTime: parseInt(e.target.value) || 0 })}
+                  value={recipe.cook_time}
+                  onChange={(e) => setRecipe({ ...recipe, cook_time: parseInt(e.target.value) || 0 })}
                   className="input w-full"
                   min="0"
                 />
