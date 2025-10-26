@@ -144,7 +144,36 @@ const RecipeGenerator = () => {
   }
 
   const saveRecipeMutation = useMutation(
-    (recipeData) => api.post('/recipes', recipeData),
+    async (recipeData) => {
+      // Check if this is a TheMealDB recipe (has string ID starting with 'mealdb-')
+      const isMealDBRecipe = recipeData.id && typeof recipeData.id === 'string' && recipeData.id.startsWith('mealdb-')
+      
+      // If the recipe doesn't have a database ID or is a TheMealDB recipe, create it first
+      if (!recipeData.id || !recipeData._id || isMealDBRecipe) {
+        const createResponse = await api.post('/recipes', {
+          title: recipeData.title,
+          description: recipeData.description,
+          ingredients: recipeData.ingredients,
+          instructions: recipeData.instructions?.map(inst => inst.description || inst) || recipeData.instructions,
+          prep_time: recipeData.prepTime || recipeData.prep_time || 0,
+          cook_time: recipeData.cookTime || recipeData.cook_time || 0,
+          servings: recipeData.servings || 4,
+          difficulty: recipeData.difficulty || 'Easy',
+          cuisine_type: recipeData.cuisine || recipeData.cuisine_type,
+          is_public: false // Make it private so it doesn't appear in user posts
+        })
+        return api.post('/saved-recipes/save', { 
+          recipe_id: createResponse.data.id,
+          source: 'recipe_generator'
+        })
+      } else {
+        // Recipe already exists in database with integer ID, just save it
+        return api.post('/saved-recipes/save', { 
+          recipe_id: recipeData.id || recipeData._id,
+          source: 'recipe_generator'
+        })
+      }
+    },
     {
       onSuccess: () => {
         toast.success('Recipe saved successfully!')
@@ -157,19 +186,7 @@ const RecipeGenerator = () => {
   )
 
   const handleSave = (recipe) => {
-    const recipeData = {
-      title: recipe.title,
-      description: recipe.description,
-      ingredients: recipe.ingredients,
-      instructions: recipe.instructions?.map(inst => inst.description || inst),
-      prepTime: recipe.prepTime || recipe.prep_time,
-      cookTime: recipe.cookTime || recipe.cook_time,
-      servings: recipe.servings,
-      difficulty: recipe.difficulty,
-      tags: recipe.tags,
-      cuisine: recipe.cuisine
-    }
-    saveRecipeMutation.mutate(recipeData)
+    saveRecipeMutation.mutate(recipe)
   }
 
   const getCategoryColor = (category) => {

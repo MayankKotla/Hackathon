@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { useQuery } from 'react-query'
-import { Plus, Heart, MessageCircle, Bookmark, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { useQuery, useMutation } from 'react-query'
+import { Plus, Heart, MessageCircle, Bookmark, Search, ChevronDown, ChevronUp, Save } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../services/api'
 import CreateRecipeModal from '../components/CreateRecipeModal'
+import toast from 'react-hot-toast'
 
 const Home = () => {
   const navigate = useNavigate()
@@ -26,6 +27,56 @@ const Home = () => {
     } catch (error) {
       console.error('Error liking recipe:', error)
     }
+  }
+
+  const saveRecipeMutation = useMutation(
+    async (recipeData) => {
+      // Check if this is a recipe object or just an ID
+      const recipe = typeof recipeData === 'object' ? recipeData : null
+      const recipeId = recipe ? (recipe._id || recipe.id) : recipeData
+      
+      // Determine if this is a TheMealDB recipe (string ID starting with 'mealdb-')
+      const isMealDBRecipe = recipeId && typeof recipeId === 'string' && recipeId.startsWith('mealdb-')
+      
+      // If we have a recipe object and it doesn't have a database ID or is a TheMealDB recipe, create it first
+      if (recipe && (!recipeId || typeof recipeId === 'string' || isMealDBRecipe)) {
+        const createResponse = await api.post('/recipes', {
+          title: recipe.title,
+          description: recipe.description,
+          ingredients: recipe.ingredients,
+          instructions: recipe.instructions,
+          prep_time: recipe.prep_time || recipe.prepTime || 0,
+          cook_time: recipe.cook_time || recipe.cookTime || 0,
+          servings: recipe.servings || 4,
+          difficulty: recipe.difficulty || 'Easy',
+          cuisine_type: recipe.cuisine_type || recipe.cuisine,
+          is_public: false // Make it private so it doesn't appear in user posts
+        })
+        return api.post('/saved-recipes/save', { 
+          recipe_id: createResponse.data.id,
+          source: 'social_feed'
+        })
+      } else {
+        // Recipe already exists in database with integer ID, just save it
+        return api.post('/saved-recipes/save', { 
+          recipe_id: recipeId,
+          source: 'social_feed'
+        })
+      }
+    },
+    {
+      onSuccess: () => {
+        toast.success('Recipe saved successfully!')
+      },
+      onError: (error) => {
+        toast.error('Failed to save recipe')
+        console.error('Save recipe error:', error)
+      }
+    }
+  )
+
+  const handleSave = (recipe) => {
+    saveRecipeMutation.mutate(recipe)
   }
 
   const handleBookmark = async (recipeId) => {
@@ -362,6 +413,13 @@ const Home = () => {
                         <button className="flex items-center space-x-1 text-gray-500 hover:text-blue-500 transition-colors">
                           <MessageCircle className="w-5 h-5" />
                           <span>{recipe.comments?.length || 0}</span>
+                        </button>
+                        <button
+                          onClick={() => handleSave(recipe)}
+                          className="flex items-center space-x-1 text-gray-500 hover:text-green-500 transition-colors"
+                          title="Save Recipe"
+                        >
+                          <Save className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => handleBookmark(recipeId)}
